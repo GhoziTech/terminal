@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:,">
     <title>Sistem Pemrosesan Data OSINT V7</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -10,24 +12,32 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Nova+Mono&display=swap');
+
         body {
-            font-family: 'Nova Mono', monospace; /* Font for terminal look */
+            font-family: 'Nova Mono', monospace;
+            /* Font for terminal look */
             background-color: #000;
-            color: #0f0; /* Neon green */
+            color: #0f0;
+            /* Neon green */
             overflow-x: hidden;
             cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><circle cx='8' cy='8' r='7' fill='none' stroke='%230f0' stroke-width='1.5'/><line x1='8' y1='1' x2='8' y2='15' stroke='%230f0' stroke-width='1.5'/><line x1='1' y1='8' x2='15' y2='8' stroke='%230f0' stroke-width='1.5'/></svg>") 8 8, auto;
         }
+
         .terminal-container {
             min-height: 100vh;
             padding: 1rem;
         }
+
         .terminal-line::before {
             content: '$ ';
-            color: #0ff; /* Cyan for prompt */
+            color: #0ff;
+            /* Cyan for prompt */
         }
+
         .text-neon {
             text-shadow: 0 0 5px #0f0, 0 0 10px #0f0, 0 0 15px #0f0;
         }
+
         .typing-cursor {
             display: inline-block;
             width: 8px;
@@ -36,27 +46,41 @@
             animation: blink 1s step-end infinite;
             margin-left: 2px;
         }
+
         @keyframes blink {
-            from, to { opacity: 0; }
-            50% { opacity: 1; }
+
+            from,
+            to {
+                opacity: 0;
+            }
+
+            50% {
+                opacity: 1;
+            }
         }
+
         .censored {
-            color: #ff0000; /* Red for censored text */
+            color: #ff0000;
+            /* Red for censored text */
             filter: blur(2px);
             user-select: none;
             cursor: default;
         }
+
         /* Custom scrollbar for terminal look */
         .terminal-output::-webkit-scrollbar {
             width: 8px;
         }
+
         .terminal-output::-webkit-scrollbar-track {
             background: #111;
         }
+
         .terminal-output::-webkit-scrollbar-thumb {
             background: #0f0;
             border-radius: 4px;
         }
+
         .user-id-display {
             background-color: #1a1a1a;
             border: 1px dashed #0ff;
@@ -64,555 +88,593 @@
             word-break: break-all;
             font-size: 0.8rem;
         }
+
         .professional-h1 {
             /* Fixes cramped mobile header by ensuring proper spacing */
             display: flex;
             align-items: center;
-            gap: 8px; /* Spacing between [INIT] and title */
-            flex-wrap: wrap; 
+            gap: 8px;
+            /* Spacing between [INIT] and title */
+            flex-wrap: wrap;
         }
     </style>
 </head>
+
 <body>
 
-<!-- Simulated Message Box for Payment Success/Error (Replaces alert()) -->
-<div id="messageBox" class="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center hidden">
-    <div class="bg-gray-900 p-6 rounded-lg border-2 border-green-500 shadow-neon max-w-lg w-full text-center">
-        <h3 id="messageTitle" class="text-xl font-bold mb-3 text-neon"></h3>
-        <p id="messageText" class="text-gray-300 mb-4"></p>
-        
-        <!-- Action buttons -->
-        <div id="messageActions" class="flex justify-center space-x-4">
-            <button id="closeMessageBox" class="bg-green-600 text-black font-bold py-2 px-6 rounded-md hover:bg-green-400 transition duration-300">
-                [$ CLOSE]
-            </button>
-        </div>
-    </div>
-</div>
+    <!-- Simulated Message Box for Payment Success/Error (Replaces alert()) -->
+    <div id="messageBox" class="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center hidden">
+        <div class="bg-gray-900 p-6 rounded-lg border-2 border-green-500 shadow-neon max-w-lg w-full text-center">
+            <h3 id="messageTitle" class="text-xl font-bold mb-3 text-neon"></h3>
+            <p id="messageText" class="text-gray-300 mb-4"></p>
 
-<div class="terminal-container container mx-auto p-4 md:p-8">
-    
-    <!-- Header dan User ID Display -->
-    <div class="flex justify-between items-center mb-6 border-b border-green-700 pb-2">
-        <h1 class="text-2xl md:text-3xl text-neon professional-h1">
-            <!-- Menjamin spasi yang baik -->
-            [<span class="text-cyan-500">INIT</span>] <span class="text-white">OSINT CONSOLE V7.2</span>
-            <!-- Premium Badge -->
-            <span id="premiumBadge" class="hidden text-xs bg-yellow-600 text-black font-bold px-2 py-0.5 rounded-full shadow-md shadow-yellow-600/50">ALPHA-7 ACTIVE</span>
-        </h1>
-        <div class="flex flex-col items-end text-right">
-            <span class="text-xs text-gray-500">User ID (Konfirmasi Admin):</span>
-            <span id="displayUserId" class="text-sm text-yellow-500 font-bold break-all">Memuat...</span>
-        </div>
-        <div class="flex items-center space-x-2 hidden md:flex">
-            <span class="text-sm">SOUND</span>
-            <input type="checkbox" id="soundToggle" class="hidden" checked>
-            <label for="soundToggle" class="cursor-pointer">
-                <div id="soundIndicator" class="w-10 h-6 flex items-center rounded-full p-1 transition duration-200 bg-green-500">
-                    <div class="toggle-circle w-4 h-4 rounded-full bg-black shadow-md transform transition duration-200 translate-x-3"></div>
-                </div>
-            </label>
-        </div>
-    </div>
-
-    <!-- Admin Verification Panel -->
-    <div id="adminPanel" class="mt-4 mb-8 p-6 bg-red-900/70 border border-red-600 rounded-lg shadow-2xl shadow-red-700/50 hidden">
-        <h2 class="text-xl font-bold text-white mb-3 text-center">[[ ADMIN VERIFICATION PANEL ]]</h2>
-        <p class="text-sm text-yellow-400 mb-4 text-center">Mode Admin Aktif. Masukkan User ID member yang telah membayar untuk mengaktifkan status Premium.</p>
-        
-        <div class="flex flex-col md:flex-row gap-4 items-center">
-            <input type="text" id="targetUserIdInput" placeholder="Masukkan Target User ID (Dari Konfirmasi Telegram)" class="flex-grow bg-black border border-red-600 text-white p-3 rounded-md focus:ring-red-500 focus:border-red-500">
-            <button id="activatePremiumButton" class="bg-red-600 text-black font-bold p-3 rounded-md hover:bg-red-400 transition duration-300 shadow-neon w-full md:w-auto">
-                [$ RUN] AKTIVASI ALPHA-7
-            </button>
-        </div>
-        <p id="adminStatus" class="text-yellow-400 mt-2 text-sm hidden">Status: </p>
-    </div>
-    
-    <!-- Area Input Pencarian -->
-    <div id="input-section" class="mb-8 p-4 border border-green-600 rounded-lg bg-gray-900/50">
-        <h2 class="text-xl mb-4 text-neon">[$ COMMAND] Masukkan Kueri Target Data</h2>
-        <div class="flex flex-col md:flex-row gap-4">
-            <select id="searchType" class="bg-black border border-green-600 text-neon p-3 rounded-md focus:ring-green-500 focus:border-green-500 w-full md:w-1/3">
-                <option value="nama" class="bg-gray-800">Nama Lengkap / Panggilan</option>
-                <option value="nomor_hp" class="bg-gray-800">Nomor HP / WhatsApp</option>
-                <option value="email" class="bg-gray-800">Alamat Email / Username Sosmed</option>
-                <option value="ip" class="bg-gray-800">Alamat IP / IMEI</option>
-                <option value="plat" class="bg-gray-800">Plat Kendaraan (Doxing)</option>
-                <option value="nik" class="bg-gray-800">Foto Wajah / NIK KTP</option>
-            </select>
-            <input type="text" id="targetInput" placeholder="Contoh: Budi Santoso / +6281xxxxxxxx" class="flex-grow bg-black border border-green-600 text-neon p-3 rounded-md focus:ring-green-500 focus:border-green-500">
-            <button id="searchButton" class="bg-green-600 text-black font-bold p-3 rounded-md hover:bg-green-400 transition duration-300 shadow-neon">
-                [$ RUN] EKSEKUSI DATA
-            </button>
-        </div>
-        <!-- Error Message -->
-        <div id="error-message" class="text-red-500 mt-2 p-2 border border-red-700 bg-red-900/20 rounded-md hidden">
-             [$ ERROR] Input Kueri Wajib Diisi. Periksa Parameter!
-        </div>
-    </div>
-
-    <!-- Area Output Terminal -->
-    <div id="terminalOutput" class="terminal-output bg-black p-4 md:p-6 border border-green-700 h-96 overflow-y-auto rounded-lg text-sm md:text-base">
-        <!-- Pesan awal -->
-        <p>[$ SYSTEM] <span class="text-cyan-500">Menganalisis protokol keamanan... OK</span></p>
-        <p>[$ SYSTEM] Memuat modul Kriptografi ELINT V4.2...</p>
-        <p id="authStatusLine">[$ SYSTEM] <span class="text-yellow-500">Mengautentikasi sistem...</span></p>
-    </div>
-    
-    <!-- Premium Section (Perjelas perbedaan fitur) -->
-    <div id="premiumSection" class="mt-8 p-6 bg-gray-900/70 border border-green-900 rounded-lg shadow-2xl shadow-green-900/50">
-        <h2 class="text-2xl font-bold text-neon mb-3 text-center">[[ AKSES VIP: PROTOKOL ALPHA-7 ]]</h2>
-        <div class="md:flex md:space-x-8 space-y-4 md:space-y-0">
-            <div class="md:w-1/2">
-                <p class="text-sm text-gray-400 mb-4">Akses **Alpha-7** memberikan fitur *high-priority* dan detail data yang lebih dalam:</p>
-                <ul class="space-y-2 text-neon text-sm">
-                    <li><span class="text-cyan-400">-></span> **Laju Prioritas:** Proses pencarian **dipercepat 80%** (1-5 Menit), tidak lagi 10-30m.</li>
-                    <li><span class="text-cyan-400">-></span> **Kedalaman Data (L6):** Sensor *Plat Kendaraan* dan *Alamat Kantor* akan dikurangi (Layer 6).</li>
-                    <li><span class="text-cyan-400">-></span> **Pencarian Massal:** Fitur kueri multipel (hingga 5 target sekaligus).</li>
-                </ul>
-                <p class="text-red-500 text-xs mt-3">**STATUS SAAT INI:** <span class="font-bold" id="currentStatusText">NON-AKTIF (Member Biasa)</span></p>
-            </div>
-            <div class="md:w-1/2 flex flex-col justify-center items-center">
-                <p class="text-3xl font-extrabold text-white mb-2">Rp 399.000,-</p>
-                <p class="text-yellow-400 mb-4">/ Lisensi Bulanan</p>
-                <button id="premiumButton" class="bg-red-700 text-white font-bold py-3 px-8 rounded-full hover:bg-red-500 transition duration-300 shadow-lg shadow-red-700/50">
-                    AKTIFKAN ALPHA-7 (QRIS & Admin Confirm)
+            <!-- Action buttons -->
+            <div id="messageActions" class="flex justify-center space-x-4">
+                <button id="closeMessageBox"
+                    class="bg-green-600 text-black font-bold py-2 px-6 rounded-md hover:bg-green-400 transition duration-300">
+                    [$ CLOSE]
                 </button>
             </div>
         </div>
     </div>
-    
-    <!-- Footer/Disclaimer Kecil (Safety Policy Compliance) -->
-    <div class="mt-8 text-center text-xs text-gray-800">
-        <p>Data Fiksional. Konten ini untuk tujuan Hiburan & Edukasi Simulasi Saja. Semua informasi disensor ketat.</p>
+
+    <div class="terminal-container container mx-auto p-4 md:p-8">
+
+        <!-- Header dan User ID Display -->
+        <div class="flex justify-between items-center mb-6 border-b border-green-700 pb-2">
+            <h1 class="text-2xl md:text-3xl text-neon professional-h1">
+                <!-- Menjamin spasi yang baik -->
+                [<span class="text-cyan-500">INIT</span>] <span class="text-white">OSINT CONSOLE V7.2</span>
+                <!-- Premium Badge -->
+                <span id="premiumBadge"
+                    class="hidden text-xs bg-yellow-600 text-black font-bold px-2 py-0.5 rounded-full shadow-md shadow-yellow-600/50">ALPHA-7
+                    ACTIVE</span>
+            </h1>
+            <div class="flex flex-col items-end text-right">
+                <span class="text-xs text-gray-500">User ID (Konfirmasi Admin):</span>
+                <span id="displayUserId" class="text-sm text-yellow-500 font-bold break-all">Memuat...</span>
+            </div>
+            <div class="flex items-center space-x-2 hidden md:flex">
+                <span class="text-sm">SOUND</span>
+                <input type="checkbox" id="soundToggle" class="hidden" checked>
+                <label for="soundToggle" class="cursor-pointer">
+                    <div id="soundIndicator"
+                        class="w-10 h-6 flex items-center rounded-full p-1 transition duration-200 bg-green-500">
+                        <div
+                            class="toggle-circle w-4 h-4 rounded-full bg-black shadow-md transform transition duration-200 translate-x-3">
+                        </div>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <!-- Admin Verification Panel -->
+        <div id="adminPanel"
+            class="mt-4 mb-8 p-6 bg-red-900/70 border border-red-600 rounded-lg shadow-2xl shadow-red-700/50 hidden">
+            <h2 class="text-xl font-bold text-white mb-3 text-center">[[ ADMIN VERIFICATION PANEL ]]</h2>
+            <p class="text-sm text-yellow-400 mb-4 text-center">Mode Admin Aktif. Masukkan User ID member yang telah
+                membayar untuk mengaktifkan status Premium.</p>
+
+            <div class="flex flex-col md:flex-row gap-4 items-center">
+                <input type="text" id="targetUserIdInput"
+                    placeholder="Masukkan Target User ID (Dari Konfirmasi Telegram)"
+                    class="flex-grow bg-black border border-red-600 text-white p-3 rounded-md focus:ring-red-500 focus:border-red-500">
+                <button id="activatePremiumButton"
+                    class="bg-red-600 text-black font-bold p-3 rounded-md hover:bg-red-400 transition duration-300 shadow-neon w-full md:w-auto">
+                    [$ RUN] AKTIVASI ALPHA-7
+                </button>
+            </div>
+            <p id="adminStatus" class="text-yellow-400 mt-2 text-sm hidden">Status: </p>
+        </div>
+
+        <!-- Area Input Pencarian -->
+        <div id="input-section" class="mb-8 p-4 border border-green-600 rounded-lg bg-gray-900/50">
+            <h2 class="text-xl mb-4 text-neon">[$ COMMAND] Masukkan Kueri Target Data</h2>
+            <div class="flex flex-col md:flex-row gap-4">
+                <select id="searchType"
+                    class="bg-black border border-green-600 text-neon p-3 rounded-md focus:ring-green-500 focus:border-green-500 w-full md:w-1/3">
+                    <option value="nama" class="bg-gray-800">Nama Lengkap / Panggilan</option>
+                    <option value="nomor_hp" class="bg-gray-800">Nomor HP / WhatsApp</option>
+                    <option value="email" class="bg-gray-800">Alamat Email / Username Sosmed</option>
+                    <option value="ip" class="bg-gray-800">Alamat IP / IMEI</option>
+                    <option value="plat" class="bg-gray-800">Plat Kendaraan (Doxing)</option>
+                    <option value="nik" class="bg-gray-800">Foto Wajah / NIK KTP</option>
+                </select>
+                <input type="text" id="targetInput" placeholder="Contoh: Budi Santoso / +6281xxxxxxxx"
+                    class="flex-grow bg-black border border-green-600 text-neon p-3 rounded-md focus:ring-green-500 focus:border-green-500">
+                <button id="searchButton"
+                    class="bg-green-600 text-black font-bold p-3 rounded-md hover:bg-green-400 transition duration-300 shadow-neon">
+                    [$ RUN] EKSEKUSI DATA
+                </button>
+            </div>
+            <!-- Error Message -->
+            <div id="error-message" class="text-red-500 mt-2 p-2 border border-red-700 bg-red-900/20 rounded-md hidden">
+                [$ ERROR] Input Kueri Wajib Diisi. Periksa Parameter!
+            </div>
+        </div>
+
+        <!-- Area Output Terminal -->
+        <div id="terminalOutput"
+            class="terminal-output bg-black p-4 md:p-6 border border-green-700 h-96 overflow-y-auto rounded-lg text-sm md:text-base">
+            <!-- Pesan awal -->
+            <p>[$ SYSTEM] <span class="text-cyan-500">Menganalisis protokol keamanan... OK</span></p>
+            <p>[$ SYSTEM] Memuat modul Kriptografi ELINT V4.2...</p>
+            <p id="authStatusLine">[$ SYSTEM] <span class="text-yellow-500">Mengautentikasi sistem...</span></p>
+        </div>
+
+        <!-- Premium Section (Perjelas perbedaan fitur) -->
+        <div id="premiumSection"
+            class="mt-8 p-6 bg-gray-900/70 border border-green-900 rounded-lg shadow-2xl shadow-green-900/50">
+            <h2 class="text-2xl font-bold text-neon mb-3 text-center">[[ AKSES VIP: PROTOKOL ALPHA-7 ]]</h2>
+            <div class="md:flex md:space-x-8 space-y-4 md:space-y-0">
+                <div class="md:w-1/2">
+                    <p class="text-sm text-gray-400 mb-4">Akses **Alpha-7** memberikan fitur *high-priority* dan detail
+                        data yang lebih dalam:</p>
+                    <ul class="space-y-2 text-neon text-sm">
+                        <li><span class="text-cyan-400">-></span> **Laju Prioritas:** Proses pencarian **dipercepat
+                            80%** (1-5 Menit), tidak lagi 10-30m.</li>
+                        <li><span class="text-cyan-400">-></span> **Kedalaman Data (L6):** Sensor *Plat Kendaraan* dan
+                            *Alamat Kantor* akan dikurangi (Layer 6).</li>
+                        <li><span class="text-cyan-400">-></span> **Pencarian Massal:** Fitur kueri multipel (hingga 5
+                            target sekaligus).</li>
+                    </ul>
+                    <p class="text-red-500 text-xs mt-3">**STATUS SAAT INI:** <span class="font-bold"
+                            id="currentStatusText">NON-AKTIF (Member Biasa)</span></p>
+                </div>
+                <div class="md:w-1/2 flex flex-col justify-center items-center">
+                    <p class="text-3xl font-extrabold text-white mb-2">Rp 399.000,-</p>
+                    <p class="text-yellow-400 mb-4">/ Lisensi Bulanan</p>
+                    <button id="premiumButton"
+                        class="bg-red-700 text-white font-bold py-3 px-8 rounded-full hover:bg-red-500 transition duration-300 shadow-lg shadow-red-700/50">
+                        AKTIFKAN ALPHA-7 (QRIS & Admin Confirm)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer/Disclaimer Kecil (Safety Policy Compliance) -->
+        <div class="mt-8 text-center text-xs text-gray-800">
+            <p>Data Fiksional. Konten ini untuk tujuan Hiburan & Edukasi Simulasi Saja. Semua informasi disensor ketat.
+            </p>
+        </div>
     </div>
-</div>
 
-<script type="module">
-    // Firebase Imports
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // Inisialisasi Firebase Global Variables (Required for Canvas Environment)
-    const appId = typeof APP_ID !== 'undefined' ? APP_ID : 'default-app-id';
-    const firebaseConfig = typeof FIREBASE_CONFIG_JSON !== 'undefined' ? JSON.parse(FIREBASE_CONFIG_JSON) : {};
+        // Inisialisasi Firebase Global Variables (Required for Canvas Environment)
+        // Mengambil Environment Variable dari Netlify (via globalThis / window)
+        const firebaseConfig = (() => {
+            try {
+                const env = window.FIREBASE_CONFIG_JSON || globalThis.FIREBASE_CONFIG_JSON;
+                return JSON.parse(env);
+            } catch (e) {
+                console.error("Gagal parsing FIREBASE_CONFIG_JSON:", e);
+                return {};
+            }
+        })();
 
-    // --- Global State ---
-    let db;
-    let auth;
-    let userId = 'USER_ID_BELUM_SIAP';
-    let isPremium = false;
-    let unsubscribePremiumStatus = () => {};
 
-    // JANGAN LUPA GANTI INI DENGAN USER ID ANDA SENDIRI! (Ditemukan di header saat aplikasi dimuat)
-    const ADMIN_USER_ID = "ADMIN_1234567890_TELEGRAM"; 
+        const appId = window.APP_ID || globalThis.APP_ID || 'osint-v7';
+        const initialAuthToken = window.INITIAL_AUTH_TOKEN || globalThis.INITIAL_AUTH_TOKEN || null;
 
-    // Helper untuk Path Firestore
-    const getPremiumStatusPath = (uid) => doc(db, 'artifacts', appId, 'public', 'data', 'premium_status', uid);
+        // --- Global State ---
+        let db;
+        let auth;
+        let userId = 'USER_ID_BELUM_SIAP';
+        let isPremium = false;
+        let unsubscribePremiumStatus = () => { };
 
-    // --- Firebase & Auth Initialization (Dibuat Robust) ---
-    async function initFirebase() {
-        const authStatusLine = document.getElementById('authStatusLine');
-        
-        try {
-            // Langsung inisiasi menggunakan konfigurasi dari lingkungan Canvas
-            const app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-            
-            authStatusLine.innerHTML = '[$ SYSTEM] <span class="text-yellow-500">Mengautentikasi...</span>';
+        // JANGAN LUPA GANTI INI DENGAN USER ID ANDA SENDIRI! (Ditemukan di header saat aplikasi dimuat)
+        const ADMIN_USER_ID = "ADMIN_1234567890_TELEGRAM";
 
-            await setPersistence(auth, browserSessionPersistence);
-            
-            const initialAuthToken = typeof INITIAL_AUTH_TOKEN !== 'undefined' ? INITIAL_AUTH_TOKEN : null;
-            
-            let authSuccess = false;
+        // Helper untuk Path Firestore
+        const getPremiumStatusPath = (uid) => doc(db, 'artifacts', appId, 'public', 'data', 'premium_status', uid);
 
-            if (initialAuthToken) {
-                try {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                    authSuccess = true;
-                } catch (e) {
-                    console.warn("[$ AUTH WARN] Custom Token gagal. Mencoba Anonymous:", e.code);
+        // --- Firebase & Auth Initialization (Dibuat Robust) ---
+        async function initFirebase() {
+            const authStatusLine = document.getElementById('authStatusLine');
+
+            try {
+                // Langsung inisiasi menggunakan konfigurasi dari lingkungan Canvas
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                authStatusLine.innerHTML = '[$ SYSTEM] <span class="text-yellow-500">Mengautentikasi...</span>';
+
+                await setPersistence(auth, browserSessionPersistence);
+
+                const initialAuthToken = typeof INITIAL_AUTH_TOKEN !== 'undefined' ? INITIAL_AUTH_TOKEN : null;
+
+                let authSuccess = false;
+
+                if (initialAuthToken) {
+                    try {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                        authSuccess = true;
+                    } catch (e) {
+                        console.warn("[$ AUTH WARN] Custom Token gagal. Mencoba Anonymous:", e.code);
+                    }
                 }
-            }
 
-            if (!authSuccess) {
-                await signInAnonymously(auth);
-            }
-            
-            // Get unique user ID
-            userId = auth.currentUser?.uid || crypto.randomUUID();
-            document.getElementById('displayUserId').textContent = userId;
+                if (!authSuccess) {
+                    await signInAnonymously(auth);
+                }
 
-            authStatusLine.innerHTML = '[$ SYSTEM] <span class="text-cyan-500">Otentikasi OK. ID dimuat.</span>';
-            console.log("Firebase Auth OK. User ID Anda:", userId);
-            
-            // Initialize Firestore Listener
-            setupPremiumStatusListener();
+                // Get unique user ID
+                userId = auth.currentUser?.uid || crypto.randomUUID();
+                document.getElementById('displayUserId').textContent = userId;
 
-            // Check if current user is admin and show the panel
-            if (userId === ADMIN_USER_ID) {
-                document.getElementById('adminPanel').classList.remove('hidden');
-                console.log("Mode Admin Aktif.");
-            } else {
-                document.getElementById('adminPanel').classList.add('hidden');
-                console.log("Mode User Biasa Aktif.");
-            }
-            
-        } catch (error) {
-            // Penanganan Error Umum Inisiasi Firebase
-            console.error("Firebase Auth/Init Error: Gagal menginisiasi Firebase:", error);
-            authStatusLine.innerHTML = '[$ SYSTEM] <span class="text-red-500">AUTH FAILED: Sistem tidak dapat dimuat.</span>';
-            
-            let displayError = `Gagal memuat sistem autentikasi/database. (Kode: ${error.code || 'UNKNOWN'}).`;
-            
-            showMessageBox("[$ ERROR] Auth System Failed", displayError, false);
-        }
-    }
+                authStatusLine.innerHTML = '[$ SYSTEM] <span class="text-cyan-500">Otentikasi OK. ID dimuat.</span>';
+                console.log("Firebase Auth OK. User ID Anda:", userId);
 
-    // --- Firestore Premium Status Listener ---
-    function setupPremiumStatusListener() {
-        if (!db || userId === 'USER_ID_BELUM_SIAP') return;
+                // Initialize Firestore Listener
+                setupPremiumStatusListener();
 
-        unsubscribePremiumStatus(); 
-
-        unsubscribePremiumStatus = onSnapshot(getPremiumStatusPath(userId), (docSnapshot) => {
-            if (docSnapshot.exists()) {
-                const data = docSnapshot.data();
-                isPremium = data.isPremium === true;
-            } else {
-                isPremium = false;
-            }
-            updatePremiumStatusUI();
-        }, (error) => {
-            console.error("Error listening to premium status:", error);
-            isPremium = false;
-            updatePremiumStatusUI();
-        });
-    }
-
-    // --- Tone.js Setup for Sound Effects ---
-    const soundToggle = document.getElementById('soundToggle');
-    const soundIndicator = document.querySelector('.toggle-circle');
-    let isSoundOn = soundToggle.checked;
-    
-    let synth = null;
-    try {
-        if (Tone) {
-            // Mengurangi latency
-            Tone.context.lookAhead = 0.05; 
-            synth = new Tone.MembraneSynth().toDestination();
-            synth.volume.value = -10; 
-        }
-    } catch (e) {
-        console.warn("Tone.js failed to initialize:", e);
-    }
-    
-    function playKeySound() {
-        if (isSoundOn && synth) {
-            synth.triggerAttackRelease("C3", "64n");
-        }
-    }
-
-    function playSystemSound() {
-        if (isSoundOn && synth) {
-            synth.triggerAttackRelease("A4", "8n");
-            synth.triggerAttackRelease("C5", "8n", "+0.1");
-        }
-    }
-
-    // Toggle Sound Logic
-    soundToggle.addEventListener('change', () => {
-        isSoundOn = soundToggle.checked;
-        soundIndicator.classList.toggle('translate-x-3');
-        soundIndicator.classList.toggle('translate-x-0');
-        document.getElementById('soundIndicator').classList.toggle('bg-green-500');
-        document.getElementById('soundIndicator').classList.toggle('bg-gray-500');
-        if (isSoundOn) {
-            if (Tone && Tone.context.state !== 'running') {
-                Tone.start().then(() => playSystemSound());
-            } else {
-                playSystemSound();
-            }
-        }
-    });
-
-    // --- Message Box Handlers (Custom implementation) ---
-    const messageBox = document.getElementById('messageBox');
-    const messageTitle = document.getElementById('messageTitle');
-    const messageText = document.getElementById('messageText');
-    const messageActions = document.getElementById('messageActions');
-    const closeMessageBox = document.getElementById('closeMessageBox');
-
-    closeMessageBox.addEventListener('click', () => {
-        messageBox.classList.add('hidden');
-    });
-
-    function showMessageBox(title, htmlContent, isSuccess = false, actions = []) {
-        messageTitle.textContent = title;
-        messageText.innerHTML = htmlContent;
-        
-        messageActions.innerHTML = '';
-        messageActions.appendChild(closeMessageBox);
-        actions.forEach(action => messageActions.appendChild(action));
-
-        messageBox.classList.remove('hidden');
-        
-        const boxDiv = messageBox.querySelector('div');
-        if (isSuccess) {
-            boxDiv.classList.remove('border-red-500');
-            boxDiv.classList.add('border-green-500');
-            messageTitle.classList.remove('text-red-500');
-            messageTitle.classList.add('text-neon');
-            playSystemSound();
-        } else {
-            boxDiv.classList.remove('border-green-500');
-            boxDiv.classList.add('border-red-500');
-            messageTitle.classList.remove('text-neon');
-            messageTitle.classList.add('text-red-500');
-        }
-    }
-
-    // --- UI Updates for Premium Status ---
-    const premiumBadge = document.getElementById('premiumBadge');
-    const premiumButton = document.getElementById('premiumButton');
-    const premiumSection = document.getElementById('premiumSection');
-    const currentStatusText = document.getElementById('currentStatusText');
-
-    function updatePremiumStatusUI() {
-        if (isPremium) {
-            premiumBadge.classList.remove('hidden');
-            premiumButton.textContent = '[$ STATUS] ALPHA-7 AKTIF';
-            premiumButton.classList.remove('bg-red-700', 'hover:bg-red-500', 'shadow-red-700/50');
-            premiumButton.classList.add('bg-green-600', 'hover:bg-green-400', 'shadow-green-600/50');
-            premiumButton.disabled = true;
-            premiumSection.classList.remove('border-green-900', 'shadow-green-900/50');
-            premiumSection.classList.add('border-yellow-600', 'shadow-yellow-600/50');
-            currentStatusText.textContent = 'AKTIF (Member Premium)';
-            currentStatusText.classList.remove('text-red-500');
-            currentStatusText.classList.add('text-green-500');
-        } else {
-            premiumBadge.classList.add('hidden');
-            premiumButton.textContent = 'AKTIFKAN ALPHA-7 (QRIS & Admin Confirm)';
-            premiumButton.classList.add('bg-red-700', 'hover:bg-red-500', 'shadow-red-700/50');
-            premiumButton.classList.remove('bg-green-600', 'hover:bg-green-400', 'shadow-green-600/50');
-            premiumButton.disabled = false;
-            premiumSection.classList.add('border-green-900', 'shadow-green-900/50');
-            premiumSection.classList.remove('border-yellow-600', 'shadow-yellow-600/50');
-            currentStatusText.textContent = 'NON-AKTIF (Member Biasa)';
-            currentStatusText.classList.add('text-red-500');
-            currentStatusText.classList.remove('text-green-500');
-        }
-    }
-
-    // --- Core Logic (Typing & Data) ---
-    const outputDiv = document.getElementById('terminalOutput');
-    const searchButton = document.getElementById('searchButton');
-    const targetInput = document.getElementById('targetInput');
-    const errorMessage = document.getElementById('error-message');
-
-    function typeLine(text, delay = 50) {
-        return new Promise(resolve => {
-            const line = document.createElement('p');
-            outputDiv.appendChild(line);
-            
-            let i = 0;
-            const cursor = document.createElement('span');
-            cursor.className = 'typing-cursor';
-            line.appendChild(cursor);
-
-            const interval = setInterval(() => {
-                if (i < text.length) {
-                    const char = text.charAt(i);
-                    line.insertBefore(document.createTextNode(char), cursor);
-                    playKeySound();
-                    i++;
-                    outputDiv.scrollTop = outputDiv.scrollHeight; 
+                // Check if current user is admin and show the panel
+                if (userId === ADMIN_USER_ID) {
+                    document.getElementById('adminPanel').classList.remove('hidden');
+                    console.log("Mode Admin Aktif.");
                 } else {
-                    clearInterval(interval);
-                    line.removeChild(cursor);
-                    resolve();
+                    document.getElementById('adminPanel').classList.add('hidden');
+                    console.log("Mode User Biasa Aktif.");
                 }
-            }, delay);
+
+            } catch (error) {
+                // Penanganan Error Umum Inisiasi Firebase
+                console.error("Firebase Auth/Init Error: Gagal menginisiasi Firebase:", error);
+                authStatusLine.innerHTML = '[$ SYSTEM] <span class="text-red-500">AUTH FAILED: Sistem tidak dapat dimuat.</span>';
+
+                let displayError = `Gagal memuat sistem autentikasi/database. (Kode: ${error.code || 'UNKNOWN'}).`;
+
+                showMessageBox("[$ ERROR] Auth System Failed", displayError, false);
+            }
+        }
+
+        // --- Firestore Premium Status Listener ---
+        function setupPremiumStatusListener() {
+            if (!db || userId === 'USER_ID_BELUM_SIAP') return;
+
+            unsubscribePremiumStatus();
+
+            unsubscribePremiumStatus = onSnapshot(getPremiumStatusPath(userId), (docSnapshot) => {
+                if (docSnapshot.exists()) {
+                    const data = docSnapshot.data();
+                    isPremium = data.isPremium === true;
+                } else {
+                    isPremium = false;
+                }
+                updatePremiumStatusUI();
+            }, (error) => {
+                console.error("Error listening to premium status:", error);
+                isPremium = false;
+                updatePremiumStatusUI();
+            });
+        }
+
+        // --- Tone.js Setup for Sound Effects ---
+        const soundToggle = document.getElementById('soundToggle');
+        const soundIndicator = document.querySelector('.toggle-circle');
+        let isSoundOn = soundToggle.checked;
+
+        let synth = null;
+        try {
+            if (Tone) {
+                // Mengurangi latency
+                Tone.context.lookAhead = 0.05;
+                synth = new Tone.MembraneSynth().toDestination();
+                synth.volume.value = -10;
+            }
+        } catch (e) {
+            console.warn("Tone.js failed to initialize:", e);
+        }
+
+        function playKeySound() {
+            if (isSoundOn && synth) {
+                synth.triggerAttackRelease("C3", "64n");
+            }
+        }
+
+        function playSystemSound() {
+            if (isSoundOn && synth) {
+                synth.triggerAttackRelease("A4", "8n");
+                synth.triggerAttackRelease("C5", "8n", "+0.1");
+            }
+        }
+
+        // Toggle Sound Logic
+        soundToggle.addEventListener('change', () => {
+            isSoundOn = soundToggle.checked;
+            soundIndicator.classList.toggle('translate-x-3');
+            soundIndicator.classList.toggle('translate-x-0');
+            document.getElementById('soundIndicator').classList.toggle('bg-green-500');
+            document.getElementById('soundIndicator').classList.toggle('bg-gray-500');
+            if (isSoundOn) {
+                if (Tone && Tone.context.state !== 'running') {
+                    Tone.start().then(() => playSystemSound());
+                } else {
+                    playSystemSound();
+                }
+            }
         });
-    }
 
-    // --- Dynamic Data Generator (DIPERBARUI AGAR LEBIH REALISTIS) ---
-    function generateFictionalData(inputQuery, searchType) {
-        // Simple hash based on input and time for variable results
-        const timeSeed = new Date().getMinutes() + new Date().getSeconds();
-        const inputSeed = inputQuery.length + inputQuery.charCodeAt(0) * 10;
-        const hash = (inputSeed * timeSeed) % 1000;
-        
-        // Normalisasi Kueri untuk Personalization
-        const normalizedQuery = inputQuery.replace(/[^a-zA-Z0-9\s]/g, '').trim();
-        const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length > 2);
-        const queryPart = queryWords[0] || 'Anonim';
-        const queryHash = normalizedQuery.length;
+        // --- Message Box Handlers (Custom implementation) ---
+        const messageBox = document.getElementById('messageBox');
+        const messageTitle = document.getElementById('messageTitle');
+        const messageText = document.getElementById('messageText');
+        const messageActions = document.getElementById('messageActions');
+        const closeMessageBox = document.getElementById('closeMessageBox');
 
-        // Elemen Realistis Indonesia
-        const provinces = ['DKI Jakarta', 'Jawa Barat', 'Banten', 'Jawa Timur', 'Sumatera Utara'];
-        const cities = {
-            'DKI Jakarta': ['Jakarta Selatan', 'Jakarta Timur', 'Jakarta Barat'],
-            'Jawa Barat': ['Bandung', 'Bekasi', 'Depok'],
-            'Banten': ['Tangerang', 'Serang'],
-            'Jawa Timur': ['Surabaya', 'Malang'],
-            'Sumatera Utara': ['Medan']
-        };
+        closeMessageBox.addEventListener('click', () => {
+            messageBox.classList.add('hidden');
+        });
 
-        const province = provinces[hash % provinces.length];
-        const cityList = cities[province] || [province];
-        const city = cityList[hash % cityList.length];
-        
-        const streetType = ['Jalan Raya', 'Gang', 'Komplek', 'Perumahan'][hash % 4];
-        const streetSuffix = ['Indah', 'Permai', 'Mawar', 'Seroja', 'Kencana'][hash % 5];
-        const streetName = `${streetType} ${queryPart} ${streetSuffix}`;
-        
-        // Derived Data
-        const basePhonePrefix = (searchType === 'nomor_hp') ? inputQuery.slice(0, 6) : `+62 81${hash % 9}x`;
-        const basePhone = `${basePhonePrefix}-${(1000 + hash).toString().padStart(4, '0')}-xxxx`;
-        
-        // NIK Pattern (Fiksional tapi mengikuti format region: 32 = Jabar, 31 = Jakarta, 36 = Banten)
-        const nikPrefixMap = {'Jawa Barat': '32', 'DKI Jakarta': '31', 'Banten': '36', 'Jawa Timur': '35', 'Sumatera Utara': '12'};
-        const nikPrefix = nikPrefixMap[province] || '33'; // Default Jawa Tengah
-        const baseNIK = `${nikPrefix}0${hash % 9}${hash % 10}**${(hash * 37) % 10000}00${(hash % 10)}`; 
-        
-        const nickname = (searchType === 'nama' || searchType === 'email') 
-            ? `${queryPart.substring(0, 1).toUpperCase()}${queryPart.substring(1).toLowerCase()}***` 
-            : `Anonim ${String(hash).slice(-3)}`;
+        function showMessageBox(title, htmlContent, isSuccess = false, actions = []) {
+            messageTitle.textContent = title;
+            messageText.innerHTML = htmlContent;
 
-        const domain = ['gmail.com', 'yahoo.co.id', 'outlook.com', 'mail.osint'][hash % 4];
-        const email = (searchType === 'email') ? inputQuery : `${queryPart.toLowerCase()}${hash%10}${hash%100}@${domain}`;
+            messageActions.innerHTML = '';
+            messageActions.appendChild(closeMessageBox);
+            actions.forEach(action => messageActions.appendChild(action));
 
-        return {
-            fullName: (searchType === 'nama') ? `${queryPart} ${['Putra', 'Wijaya', 'Santoso', 'Hadi', 'Nugraha'][hash % 5]} ${String.fromCharCode(65 + (hash % 26))}**` : `${queryPart} ${['Purnama', 'Sutrisno'][hash % 2]}`,
-            nickname: nickname,
-            nik: baseNIK.replace(/(\*)/g, 'X'), 
-            kk: baseNIK.replace(/(\*)/g, 'Y'), 
-            plate: `B ${1000 + hash} ${String.fromCharCode(65 + (hash % 26))}${(hash % 10)} ${hash % 100}**`, 
-            phone: basePhone.replace(/(\*)/g, 'X'),
-            // Alamat dibuat sangat detail dan realistis
-            address: `${streetName} No. ${hash % 10}, RT 0${hash % 9 + 1}/ RW 0${hash % 5 + 1}, Kel. S***** J***, Kec. C**** P****, ${city}, ${province}`,
-            realtimeLocation: `Lokasi Terakhir Dideteksi: ${streetName}, ${city} (${hash % 3 + 1} Jam Lalu)`,
-            device: `ANDROID ${12 + (hash % 4)} (Samsung Galaxy S2${(hash % 5) + 0}) / IOS 1${5 + (hash % 3)}.X (iPhone 1${(hash % 5) + 0} Pro)`,
-            education: [`Universitas G*** M*** (S1, 20XX)`, `SMAN ${10 + hash % 10} ${city}`],
-            family: [`Istri/Pasangan: N** ** (No. HP: ${basePhone.replace('x', '*')})`, `Orang Tua: B*** S*** (NIK: ${baseNIK.slice(0, 8)}********)`],
-            photoLink: `https://placehold.co/100x150/ff0000/ffffff?text=FOTO_CENSORED_${queryPart}`,
-            hangout: [`Pusat Perbelanjaan ${city} (4 Hari Lalu)`, `Kedai Kopi ${queryPart} (1 Hari Lalu)`],
-            officeName: `PT. ${queryPart.toUpperCase()} Digitalindo`,
-            officeAddress: `Gedung ${['Astra', 'Equity', 'Cyber'][hash % 3]} Tower Lantai 1${hash % 10}, ${streetName}, ${city}, ${province}`,
-            socmed: [`https://www.instagram.com/${queryPart.toLowerCase()}_***`, `https://www.facebook.com/${queryPart.toLowerCase()}***`, `https://t.me/${queryPart.toLowerCase()}_osint`],
-            email: email
-        };
-    }
+            messageBox.classList.remove('hidden');
 
-    async function generateFakeResult(inputQuery) {
-        // Perbedaan Performa
-        const initialDelayMins = isPremium ? 3.5 : 15.3;
-        const loopCount = isPremium ? 1 : 3;
-        const delayMs = isPremium ? 500 : 1000;
-        const speedText = isPremium ? "DIPERCEPAT (1-5m)" : "NORMAL (10-30m)";
-        
-        const searchType = document.getElementById('searchType').value;
-        const data = generateFictionalData(inputQuery, searchType);
-
-        await typeLine(`[$ PROTOCOL] Mengautentikasi kunci akses level 7...`, 20);
-        await typeLine(`[$ PROTOCOL] Kueri: ${inputQuery} | Tipe: ${searchType.toUpperCase()}`, 20);
-        await typeLine(`[$ PROTOCOL] Menginisiasi modul Dox-Kernel 7.1.x`, 20);
-        await typeLine(`[$ PROCESS] Estimasi Waktu Proses: ${initialDelayMins} menit | Mode: ${speedText}.`, 5);
-        
-        for (let i = 1; i <= loopCount; i++) {
-            await typeLine(`[$ PROCESS] Status: Menganalisis Layer Data ${i}/7...`, 5);
-            await new Promise(r => setTimeout(r, delayMs));
-        }
-        
-        // --- FEATURE DIFFERENTIATION (PENGURANGAN CENSORING UNTUK PREMIUM) ---
-        // Member Biasa: Sensor Penuh
-        const plateCensored = data.plate.replace(/([A-Z] \d{4} [A-Z]{2}) \/ ([A-Z]{2} \d{4})/, '$1 / ** ******');
-        const officeAddressCensored = 'Lokasi Office: ***** [Layer 6 Restricted]';
-        const phoneCensored = data.phone.replace(/(\d{4}-)/, '****-');
-
-        // Member Premium: Sensor dikurangi (Layer 6 Access)
-        const plateDisplay = isPremium ? `${data.plate} <span class="text-cyan-400">[PRIORITY DETAIL]</span>` : plateCensored;
-        const officeAddressDisplay = isPremium ? `Lokasi Office: ${data.officeAddress}` : officeAddressCensored;
-        const phoneDisplay = isPremium ? data.phone : phoneCensored;
-        // ----------------------------------------------------------------------
-
-
-        await typeLine(`[$ RESULT] ** Data Ditemukan & Di-Dekripsi (Level 7) **`, 30);
-        await typeLine(`--------------------------------------------------------------------------------`, 5);
-        
-        const lines = [
-            `> Nama Lengkap: <span class="text-yellow-400">${data.fullName}</span>`,
-            `> Nama Panggilan: ${data.nickname}`,
-            `> NIK/KK Target: ${data.nik} / ${data.kk}`,
-            `> Email Utama: ${data.email}`,
-            `> Plat Kendaraan: ${plateDisplay}`,
-            `> Telepon/WA: <span class="text-yellow-400">${phoneDisplay}</span>`, 
-            `> Alamat Domisili (Real Time): ${data.realtimeLocation}`,
-            `> Domisili Terakhir: ${data.address}`,
-            `> Info Perangkat: ${data.device}`,
-            `> --- [INFORMASI SOSIAL MEDIA (COOKIES/LINK)] ---`,
-            `> Instagram: <span class="censored">${data.socmed[0]}</span>`,
-            `> Facebook: <span class="censored">${data.socmed[1]}</span>`,
-            `> Telegram: <span class="censored">${data.socmed[2]}</span>`,
-            `> --- [INFORMASI PRIBADI & PEKERJAAN] ---`,
-            `> Data Keluarga: ${data.family.join(' | ')}`,
-            `> Riwayat Pendidikan: ${data.education.join(' | ')}`,
-            `> Jabatan/Pekerjaan: ${data.officeName} | ${officeAddressDisplay}`,
-            `> Lokasi Kunjungan Terakhir (7 Hari): ${data.hangout.join(' | ')}`,
-            `> Tautan Foto: <span class="censored">${data.photoLink}</span>`,
-            `--------------------------------------------------------------------------------`,
-            `[$ SUCCESS] ** Prosedur Data-Doxing Selesai. **`,
-            `[$ SYSTEM] Siap menerima Kueri Baru.`
-        ];
-
-        for (const line of lines) {
-            await typeLine(line, line.includes('SUCCESS') ? 100 : 15);
-        }
-        
-        playSystemSound();
-        searchButton.disabled = false;
-    }
-
-    // --- Event Handlers ---
-
-    // Main Search Handler
-    searchButton.addEventListener('click', async () => {
-        const input = targetInput.value.trim();
-        const searchType = document.getElementById('searchType').value;
-
-        // Cek jika Firebase belum siap
-        if (userId === 'USER_ID_BELUM_SIAP') {
-            showMessageBox("[$ WARNING] Sistem Belum Siap", "Autentikasi Firebase belum selesai. Mohon tunggu sejenak hingga 'User ID' muncul.", false);
-            return;
+            const boxDiv = messageBox.querySelector('div');
+            if (isSuccess) {
+                boxDiv.classList.remove('border-red-500');
+                boxDiv.classList.add('border-green-500');
+                messageTitle.classList.remove('text-red-500');
+                messageTitle.classList.add('text-neon');
+                playSystemSound();
+            } else {
+                boxDiv.classList.remove('border-green-500');
+                boxDiv.classList.add('border-red-500');
+                messageTitle.classList.remove('text-neon');
+                messageTitle.classList.add('text-red-500');
+            }
         }
 
-        if (input === '') {
-            errorMessage.classList.remove('hidden');
-            outputDiv.scrollTop = outputDiv.scrollHeight;
-            return;
+        // --- UI Updates for Premium Status ---
+        const premiumBadge = document.getElementById('premiumBadge');
+        const premiumButton = document.getElementById('premiumButton');
+        const premiumSection = document.getElementById('premiumSection');
+        const currentStatusText = document.getElementById('currentStatusText');
+
+        function updatePremiumStatusUI() {
+            if (isPremium) {
+                premiumBadge.classList.remove('hidden');
+                premiumButton.textContent = '[$ STATUS] ALPHA-7 AKTIF';
+                premiumButton.classList.remove('bg-red-700', 'hover:bg-red-500', 'shadow-red-700/50');
+                premiumButton.classList.add('bg-green-600', 'hover:bg-green-400', 'shadow-green-600/50');
+                premiumButton.disabled = true;
+                premiumSection.classList.remove('border-green-900', 'shadow-green-900/50');
+                premiumSection.classList.add('border-yellow-600', 'shadow-yellow-600/50');
+                currentStatusText.textContent = 'AKTIF (Member Premium)';
+                currentStatusText.classList.remove('text-red-500');
+                currentStatusText.classList.add('text-green-500');
+            } else {
+                premiumBadge.classList.add('hidden');
+                premiumButton.textContent = 'AKTIFKAN ALPHA-7 (QRIS & Admin Confirm)';
+                premiumButton.classList.add('bg-red-700', 'hover:bg-red-500', 'shadow-red-700/50');
+                premiumButton.classList.remove('bg-green-600', 'hover:bg-green-400', 'shadow-green-600/50');
+                premiumButton.disabled = false;
+                premiumSection.classList.add('border-green-900', 'shadow-green-900/50');
+                premiumSection.classList.remove('border-yellow-600', 'shadow-yellow-600/50');
+                currentStatusText.textContent = 'NON-AKTIF (Member Biasa)';
+                currentStatusText.classList.add('text-red-500');
+                currentStatusText.classList.remove('text-green-500');
+            }
         }
-        errorMessage.classList.add('hidden');
 
-        searchButton.disabled = true;
-        outputDiv.innerHTML = '';
-        outputDiv.appendChild(document.createElement('br'));
+        // --- Core Logic (Typing & Data) ---
+        const outputDiv = document.getElementById('terminalOutput');
+        const searchButton = document.getElementById('searchButton');
+        const targetInput = document.getElementById('targetInput');
+        const errorMessage = document.getElementById('error-message');
 
-        await typeLine(`[$ RUN] Menginisiasi pencarian data...`, 15);
-        await typeLine(`[$ TARGET] Kueri: ${input} (${searchType.toUpperCase()})`, 15);
+        function typeLine(text, delay = 50) {
+            return new Promise(resolve => {
+                const line = document.createElement('p');
+                outputDiv.appendChild(line);
 
-        await generateFakeResult(input);
-    });
+                let i = 0;
+                const cursor = document.createElement('span');
+                cursor.className = 'typing-cursor';
+                line.appendChild(cursor);
 
-    // Premium Button Handler (USER INSTRUCTION)
-    premiumButton.addEventListener('click', () => {
-        
-        // HTML content for payment instructions
-        const instructionsHtml = `
+                const interval = setInterval(() => {
+                    if (i < text.length) {
+                        const char = text.charAt(i);
+                        line.insertBefore(document.createTextNode(char), cursor);
+                        playKeySound();
+                        i++;
+                        outputDiv.scrollTop = outputDiv.scrollHeight;
+                    } else {
+                        clearInterval(interval);
+                        line.removeChild(cursor);
+                        resolve();
+                    }
+                }, delay);
+            });
+        }
+
+        // --- Dynamic Data Generator (DIPERBARUI AGAR LEBIH REALISTIS) ---
+        function generateFictionalData(inputQuery, searchType) {
+            // Simple hash based on input and time for variable results
+            const timeSeed = new Date().getMinutes() + new Date().getSeconds();
+            const inputSeed = inputQuery.length + inputQuery.charCodeAt(0) * 10;
+            const hash = (inputSeed * timeSeed) % 1000;
+
+            // Normalisasi Kueri untuk Personalization
+            const normalizedQuery = inputQuery.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+            const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length > 2);
+            const queryPart = queryWords[0] || 'Anonim';
+            const queryHash = normalizedQuery.length;
+
+            // Elemen Realistis Indonesia
+            const provinces = ['DKI Jakarta', 'Jawa Barat', 'Banten', 'Jawa Timur', 'Sumatera Utara'];
+            const cities = {
+                'DKI Jakarta': ['Jakarta Selatan', 'Jakarta Timur', 'Jakarta Barat'],
+                'Jawa Barat': ['Bandung', 'Bekasi', 'Depok'],
+                'Banten': ['Tangerang', 'Serang'],
+                'Jawa Timur': ['Surabaya', 'Malang'],
+                'Sumatera Utara': ['Medan']
+            };
+
+            const province = provinces[hash % provinces.length];
+            const cityList = cities[province] || [province];
+            const city = cityList[hash % cityList.length];
+
+            const streetType = ['Jalan Raya', 'Gang', 'Komplek', 'Perumahan'][hash % 4];
+            const streetSuffix = ['Indah', 'Permai', 'Mawar', 'Seroja', 'Kencana'][hash % 5];
+            const streetName = `${streetType} ${queryPart} ${streetSuffix}`;
+
+            // Derived Data
+            const basePhonePrefix = (searchType === 'nomor_hp') ? inputQuery.slice(0, 6) : `+62 81${hash % 9}x`;
+            const basePhone = `${basePhonePrefix}-${(1000 + hash).toString().padStart(4, '0')}-xxxx`;
+
+            // NIK Pattern (Fiksional tapi mengikuti format region: 32 = Jabar, 31 = Jakarta, 36 = Banten)
+            const nikPrefixMap = { 'Jawa Barat': '32', 'DKI Jakarta': '31', 'Banten': '36', 'Jawa Timur': '35', 'Sumatera Utara': '12' };
+            const nikPrefix = nikPrefixMap[province] || '33'; // Default Jawa Tengah
+            const baseNIK = `${nikPrefix}0${hash % 9}${hash % 10}**${(hash * 37) % 10000}00${(hash % 10)}`;
+
+            const nickname = (searchType === 'nama' || searchType === 'email')
+                ? `${queryPart.substring(0, 1).toUpperCase()}${queryPart.substring(1).toLowerCase()}***`
+                : `Anonim ${String(hash).slice(-3)}`;
+
+            const domain = ['gmail.com', 'yahoo.co.id', 'outlook.com', 'mail.osint'][hash % 4];
+            const email = (searchType === 'email') ? inputQuery : `${queryPart.toLowerCase()}${hash % 10}${hash % 100}@${domain}`;
+
+            return {
+                fullName: (searchType === 'nama') ? `${queryPart} ${['Putra', 'Wijaya', 'Santoso', 'Hadi', 'Nugraha'][hash % 5]} ${String.fromCharCode(65 + (hash % 26))}**` : `${queryPart} ${['Purnama', 'Sutrisno'][hash % 2]}`,
+                nickname: nickname,
+                nik: baseNIK.replace(/(\*)/g, 'X'),
+                kk: baseNIK.replace(/(\*)/g, 'Y'),
+                plate: `B ${1000 + hash} ${String.fromCharCode(65 + (hash % 26))}${(hash % 10)} ${hash % 100}**`,
+                phone: basePhone.replace(/(\*)/g, 'X'),
+                // Alamat dibuat sangat detail dan realistis
+                address: `${streetName} No. ${hash % 10}, RT 0${hash % 9 + 1}/ RW 0${hash % 5 + 1}, Kel. S***** J***, Kec. C**** P****, ${city}, ${province}`,
+                realtimeLocation: `Lokasi Terakhir Dideteksi: ${streetName}, ${city} (${hash % 3 + 1} Jam Lalu)`,
+                device: `ANDROID ${12 + (hash % 4)} (Samsung Galaxy S2${(hash % 5) + 0}) / IOS 1${5 + (hash % 3)}.X (iPhone 1${(hash % 5) + 0} Pro)`,
+                education: [`Universitas G*** M*** (S1, 20XX)`, `SMAN ${10 + hash % 10} ${city}`],
+                family: [`Istri/Pasangan: N** ** (No. HP: ${basePhone.replace('x', '*')})`, `Orang Tua: B*** S*** (NIK: ${baseNIK.slice(0, 8)}********)`],
+                photoLink: `https://placehold.co/100x150/ff0000/ffffff?text=FOTO_CENSORED_${queryPart}`,
+                hangout: [`Pusat Perbelanjaan ${city} (4 Hari Lalu)`, `Kedai Kopi ${queryPart} (1 Hari Lalu)`],
+                officeName: `PT. ${queryPart.toUpperCase()} Digitalindo`,
+                officeAddress: `Gedung ${['Astra', 'Equity', 'Cyber'][hash % 3]} Tower Lantai 1${hash % 10}, ${streetName}, ${city}, ${province}`,
+                socmed: [`https://www.instagram.com/${queryPart.toLowerCase()}_***`, `https://www.facebook.com/${queryPart.toLowerCase()}***`, `https://t.me/${queryPart.toLowerCase()}_osint`],
+                email: email
+            };
+        }
+
+        async function generateFakeResult(inputQuery) {
+            // Perbedaan Performa
+            const initialDelayMins = isPremium ? 3.5 : 15.3;
+            const loopCount = isPremium ? 1 : 3;
+            const delayMs = isPremium ? 500 : 1000;
+            const speedText = isPremium ? "DIPERCEPAT (1-5m)" : "NORMAL (10-30m)";
+
+            const searchType = document.getElementById('searchType').value;
+            const data = generateFictionalData(inputQuery, searchType);
+
+            await typeLine(`[$ PROTOCOL] Mengautentikasi kunci akses level 7...`, 20);
+            await typeLine(`[$ PROTOCOL] Kueri: ${inputQuery} | Tipe: ${searchType.toUpperCase()}`, 20);
+            await typeLine(`[$ PROTOCOL] Menginisiasi modul Dox-Kernel 7.1.x`, 20);
+            await typeLine(`[$ PROCESS] Estimasi Waktu Proses: ${initialDelayMins} menit | Mode: ${speedText}.`, 5);
+
+            for (let i = 1; i <= loopCount; i++) {
+                await typeLine(`[$ PROCESS] Status: Menganalisis Layer Data ${i}/7...`, 5);
+                await new Promise(r => setTimeout(r, delayMs));
+            }
+
+            // --- FEATURE DIFFERENTIATION (PENGURANGAN CENSORING UNTUK PREMIUM) ---
+            // Member Biasa: Sensor Penuh
+            const plateCensored = data.plate.replace(/([A-Z] \d{4} [A-Z]{2}) \/ ([A-Z]{2} \d{4})/, '$1 / ** ******');
+            const officeAddressCensored = 'Lokasi Office: ***** [Layer 6 Restricted]';
+            const phoneCensored = data.phone.replace(/(\d{4}-)/, '****-');
+
+            // Member Premium: Sensor dikurangi (Layer 6 Access)
+            const plateDisplay = isPremium ? `${data.plate} <span class="text-cyan-400">[PRIORITY DETAIL]</span>` : plateCensored;
+            const officeAddressDisplay = isPremium ? `Lokasi Office: ${data.officeAddress}` : officeAddressCensored;
+            const phoneDisplay = isPremium ? data.phone : phoneCensored;
+            // ----------------------------------------------------------------------
+
+
+            await typeLine(`[$ RESULT] ** Data Ditemukan & Di-Dekripsi (Level 7) **`, 30);
+            await typeLine(`--------------------------------------------------------------------------------`, 5);
+
+            const lines = [
+                `> Nama Lengkap: <span class="text-yellow-400">${data.fullName}</span>`,
+                `> Nama Panggilan: ${data.nickname}`,
+                `> NIK/KK Target: ${data.nik} / ${data.kk}`,
+                `> Email Utama: ${data.email}`,
+                `> Plat Kendaraan: ${plateDisplay}`,
+                `> Telepon/WA: <span class="text-yellow-400">${phoneDisplay}</span>`,
+                `> Alamat Domisili (Real Time): ${data.realtimeLocation}`,
+                `> Domisili Terakhir: ${data.address}`,
+                `> Info Perangkat: ${data.device}`,
+                `> --- [INFORMASI SOSIAL MEDIA (COOKIES/LINK)] ---`,
+                `> Instagram: <span class="censored">${data.socmed[0]}</span>`,
+                `> Facebook: <span class="censored">${data.socmed[1]}</span>`,
+                `> Telegram: <span class="censored">${data.socmed[2]}</span>`,
+                `> --- [INFORMASI PRIBADI & PEKERJAAN] ---`,
+                `> Data Keluarga: ${data.family.join(' | ')}`,
+                `> Riwayat Pendidikan: ${data.education.join(' | ')}`,
+                `> Jabatan/Pekerjaan: ${data.officeName} | ${officeAddressDisplay}`,
+                `> Lokasi Kunjungan Terakhir (7 Hari): ${data.hangout.join(' | ')}`,
+                `> Tautan Foto: <span class="censored">${data.photoLink}</span>`,
+                `--------------------------------------------------------------------------------`,
+                `[$ SUCCESS] ** Prosedur Data-Doxing Selesai. **`,
+                `[$ SYSTEM] Siap menerima Kueri Baru.`
+            ];
+
+            for (const line of lines) {
+                await typeLine(line, line.includes('SUCCESS') ? 100 : 15);
+            }
+
+            playSystemSound();
+            searchButton.disabled = false;
+        }
+
+        // --- Event Handlers ---
+
+        // Main Search Handler
+        searchButton.addEventListener('click', async () => {
+            const input = targetInput.value.trim();
+            const searchType = document.getElementById('searchType').value;
+
+            // Cek jika Firebase belum siap
+            if (userId === 'USER_ID_BELUM_SIAP') {
+                showMessageBox("[$ WARNING] Sistem Belum Siap", "Autentikasi Firebase belum selesai. Mohon tunggu sejenak hingga 'User ID' muncul.", false);
+                return;
+            }
+
+            if (input === '') {
+                errorMessage.classList.remove('hidden');
+                outputDiv.scrollTop = outputDiv.scrollHeight;
+                return;
+            }
+            errorMessage.classList.add('hidden');
+
+            searchButton.disabled = true;
+            outputDiv.innerHTML = '';
+            outputDiv.appendChild(document.createElement('br'));
+
+            await typeLine(`[$ RUN] Menginisiasi pencarian data...`, 15);
+            await typeLine(`[$ TARGET] Kueri: ${input} (${searchType.toUpperCase()})`, 15);
+
+            await generateFakeResult(input);
+        });
+
+        // Premium Button Handler (USER INSTRUCTION)
+        premiumButton.addEventListener('click', () => {
+
+            // HTML content for payment instructions
+            const instructionsHtml = `
             <h4 class="text-lg font-bold text-neon mb-4">Langkah-Langkah Konfirmasi Pembayaran</h4>
             
             <p class="text-sm mb-4 text-left">
@@ -620,7 +682,7 @@
             </p>
             
             <div class="flex justify-center mb-4 p-2 bg-white rounded-md">
-                <img src="https://placehold.co/200x200/000000/ffffff?text=QRIS+CODE" alt="QRIS Placeholder" class="w-48 h-48 border-2 border-green-500 rounded-md">
+                <img src="qris.jpg" alt="QRIS Placeholder" class="w-48 h-48 border-2 border-green-500 rounded-md">
             </div>
 
             <p class="text-xs text-center text-gray-500 mb-4">
@@ -632,7 +694,7 @@
             </p>
             <p class="text-sm mb-4 text-left">
                 2. Setelah transfer, kirimkan **bukti pembayaran** (screenshot) dan **USER ID Anda** (tertera di bawah) ke kontak Admin kami melalui Telegram: 
-                <a href="https://t.me/AdminOSINT_Official" target="_blank" class="text-cyan-400 hover:text-cyan-200 font-bold">@AdminOSINT_Official</a>
+                <a href="https://t.me/Youghoz" target="_blank" class="text-cyan-400 hover:text-cyan-200 font-bold">@Youghoz</a>
             </p>
             <p class="text-sm mb-2 text-left">
                 3. User ID Anda (WAJIB disertakan):
@@ -645,76 +707,77 @@
             </p>
         `;
 
-        showMessageBox(
-            "[[ ALPHA-7 PAYMENT VIA QRIS & TELEGRAM ]]",
-            instructionsHtml,
-            false
-        );
-    });
+            showMessageBox(
+                "[[ ALPHA-7 PAYMENT VIA QRIS & TELEGRAM ]]",
+                instructionsHtml,
+                false
+            );
+        });
 
-    // Admin Panel Logic (ADMIN ACTION)
-    document.getElementById('activatePremiumButton').addEventListener('click', async () => {
-        const targetUid = document.getElementById('targetUserIdInput').value.trim();
-        const adminStatus = document.getElementById('adminStatus');
-        adminStatus.classList.remove('hidden');
-        adminStatus.textContent = 'Status: Memproses aktivasi Premium...';
+        // Admin Panel Logic (ADMIN ACTION)
+        document.getElementById('activatePremiumButton').addEventListener('click', async () => {
+            const targetUid = document.getElementById('targetUserIdInput').value.trim();
+            const adminStatus = document.getElementById('adminStatus');
+            adminStatus.classList.remove('hidden');
+            adminStatus.textContent = 'Status: Memproses aktivasi Premium...';
 
-        if (!targetUid) {
-            adminStatus.textContent = '[$ ERROR] Target User ID tidak boleh kosong. Masukkan ID dari Telegram.';
-            adminStatus.classList.remove('text-yellow-400');
-            adminStatus.classList.add('text-red-500');
-            return;
-        }
-        
-        // Safety check agar tidak mengaktifkan admin ID itu sendiri
-        if (targetUid === ADMIN_USER_ID) {
-            adminStatus.textContent = '[$ ERROR] User ID Admin tidak perlu diaktifkan.';
-            adminStatus.classList.remove('text-yellow-400');
-            adminStatus.classList.add('text-red-500');
-            return;
-        }
-
-        try {
-            // Write premium status to Firestore
-            await setDoc(getPremiumStatusPath(targetUid), {
-                isPremium: true,
-                activatedBy: userId, // Log which admin activated it
-                activationDate: new Date().toISOString()
-            }, { merge: true });
-
-            adminStatus.textContent = `[$ SUCCESS] User ID ${targetUid.substring(0, 10)}... telah diaktifkan! Status Premium diperbarui. Konfirmasi Selesai.`;
-            adminStatus.classList.add('text-green-500');
-            adminStatus.classList.remove('text-red-500', 'text-yellow-400');
-
-        } catch (error) {
-            console.error("ADMIN ERROR activating premium:", error);
-            adminStatus.textContent = `[$ FATAL ERROR] Gagal menyimpan ke database. Cek konsol.`;
-            adminStatus.classList.remove('text-yellow-400', 'text-green-500');
-            adminStatus.classList.add('text-red-500');
-        }
-    });
-
-    // --- Initialization on Load ---
-    window.onload = () => {
-        initFirebase();
-
-        // Mengganti listener ini untuk mengatasi masalah Tone.js di sebagian besar browser
-        document.body.addEventListener('click', () => {
-            if (Tone && Tone.context.state !== 'running') {
-                Tone.start();
+            if (!targetUid) {
+                adminStatus.textContent = '[$ ERROR] Target User ID tidak boleh kosong. Masukkan ID dari Telegram.';
+                adminStatus.classList.remove('text-yellow-400');
+                adminStatus.classList.add('text-red-500');
+                return;
             }
-        }, { once: true });
-        
-        // Initial setup for the sound toggle indicator
-        if (isSoundOn) {
-            soundIndicator.classList.add('translate-x-3');
-            document.getElementById('soundIndicator').classList.add('bg-green-500');
-        } else {
-            soundIndicator.classList.add('translate-x-0');
-            document.getElementById('soundIndicator').classList.add('bg-gray-500');
+
+            // Safety check agar tidak mengaktifkan admin ID itu sendiri
+            if (targetUid === ADMIN_USER_ID) {
+                adminStatus.textContent = '[$ ERROR] User ID Admin tidak perlu diaktifkan.';
+                adminStatus.classList.remove('text-yellow-400');
+                adminStatus.classList.add('text-red-500');
+                return;
+            }
+
+            try {
+                // Write premium status to Firestore
+                await setDoc(getPremiumStatusPath(targetUid), {
+                    isPremium: true,
+                    activatedBy: userId, // Log which admin activated it
+                    activationDate: new Date().toISOString()
+                }, { merge: true });
+
+                adminStatus.textContent = `[$ SUCCESS] User ID ${targetUid.substring(0, 10)}... telah diaktifkan! Status Premium diperbarui. Konfirmasi Selesai.`;
+                adminStatus.classList.add('text-green-500');
+                adminStatus.classList.remove('text-red-500', 'text-yellow-400');
+
+            } catch (error) {
+                console.error("ADMIN ERROR activating premium:", error);
+                adminStatus.textContent = `[$ FATAL ERROR] Gagal menyimpan ke database. Cek konsol.`;
+                adminStatus.classList.remove('text-yellow-400', 'text-green-500');
+                adminStatus.classList.add('text-red-500');
+            }
+        });
+
+        // --- Initialization on Load ---
+        window.onload = () => {
+            initFirebase();
+
+            // Mengganti listener ini untuk mengatasi masalah Tone.js di sebagian besar browser
+            document.body.addEventListener('click', () => {
+                if (Tone && Tone.context.state !== 'running') {
+                    Tone.start();
+                }
+            }, { once: true });
+
+            // Initial setup for the sound toggle indicator
+            if (isSoundOn) {
+                soundIndicator.classList.add('translate-x-3');
+                document.getElementById('soundIndicator').classList.add('bg-green-500');
+            } else {
+                soundIndicator.classList.add('translate-x-0');
+                document.getElementById('soundIndicator').classList.add('bg-gray-500');
+            }
         }
-    }
-</script>
+    </script>
 
 </body>
+
 </html>
