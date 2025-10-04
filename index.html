@@ -178,7 +178,7 @@
                     <option value="email" class="bg-gray-800">Alamat Email / Username Sosmed</option>
                     <option value="ip" class="bg-gray-800">Alamat IP / IMEI</option>
                     <option value="plat" class="bg-gray-800">Plat Kendaraan (Doxing)</option>
-                    <option value="nik" class="bg-gray-800">Foto Wajah / NIK KTP</option>
+                    <option value="nik" class="bg-gray-800">NIK KTP / Data Kependudukan</option>
                 </select>
                 <input type="text" id="targetInput" placeholder="Contoh: Budi Santoso / +6281xxxxxxxx"
                     class="flex-grow bg-black border border-green-600 text-neon p-3 rounded-md focus:ring-green-500 focus:border-green-500">
@@ -211,8 +211,8 @@
                     <p class="text-sm text-gray-400 mb-4">Akses **Alpha-7** memberikan fitur *high-priority* dan detail
                         data yang lebih dalam:</p>
                     <ul class="space-y-2 text-neon text-sm">
-                        <li><span class="text-cyan-400">-></span> **Laju Prioritas:** Proses pencarian **dipercepat
-                            80%** (1-5 Menit), tidak lagi 10-30m.</li>
+                        <li><span class="text-cyan-400">-></span> **Laju Prioritas:** Proses pencarian **dipercepat 80%**
+                            (1-5 Detik), bukan 5 Menit.</li>
                         <li><span class="text-cyan-400">-></span> **Kedalaman Data (L6):** Sensor *Plat Kendaraan* dan
                             *Alamat Kantor* akan dikurangi (Layer 6).</li>
                         <li><span class="text-cyan-400">-></span> **Pencarian Massal:** Fitur kueri multipel (hingga 5
@@ -246,21 +246,23 @@
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // =========================================================================
+        // PERHATIAN: PENGATURAN FIREBASE UNTUK STANDALONE DEPLOYMENT (Vercel/Lainnya)
+        // GANTI KONFIGURASI DI BAWAH INI DENGAN DATA PROYEK FIREBASE ANDA!
         // =========================================================================
         const firebaseConfig = {
-            apiKey: "AIzaSyBPLDXtbP-sKWdSXbEzPcpm1iWaaVe0LQ4", // 
-            authDomain: "ghozi-tech.firebaseapp.com", // 
-            projectId: "ghozi-tech", // 
-            storageBucket: "ghozi-tech.firebasestorage.app", // 
-            messagingSenderId: "1007492022053", // 
-            appId: "1:1007492022053:web:d2c3149b3d150412a324cc", // 
+            apiKey: "AIzaSyBNnm6-JyV5Pg0hguJlWLjr3xc8Puvdo8k", // GANTI DENGAN API KEY ANDA
+            authDomain: "osint-303f5.firebaseapp.com", // GANTI
+            projectId: "osint-303f5", // GANTI
+            storageBucket: "osint-303f5.firebasestorage.app", // GANTI
+            messagingSenderId: "999796684833", // GANTI
+            appId: "1:999796684833:web:38dbc1f9845362be524b60", // GANTI
         };
 
         // Ganti dengan ID Proyek yang Anda gunakan untuk Firestore di path 'artifacts'
-        const appId = 'osint-v7-vercel'; 
+        const appId = 'osint-v7-vercel';
 
-        // JANGAN LUPA GANTI INI DENGAN USER ID ADMIN ANDA SENDIRI! 
-        const ADMIN_USER_ID = "nBadP3HW7pZNrF8vzQlTZY3Xwyj1"; 
+        // JANGAN LUPA GANTI INI DENGAN USER ID ADMIN ANDA SENDIRI! (ID ini harus sama dengan yang di Firestore Rules)
+        const ADMIN_USER_ID = "nBadP3HW7pZNrF8vzQlTZY3Xwyj1";
 
         // --- Global State ---
         let db;
@@ -497,131 +499,166 @@
             });
         }
 
-        // --- Dynamic Data Generator (DIPERBARUI AGAR LEBIH REALISTIS) ---
+        // --- Dynamic Data Generator (DIPERBARUI AGAR SANGAT REALISTIS) ---
         function generateFictionalData(inputQuery, searchType) {
-            // Simple hash based on input and time for variable results
-            const timeSeed = new Date().getMinutes() + new Date().getSeconds();
-            const inputSeed = inputQuery.length + inputQuery.charCodeAt(0) * 10;
-            const hash = (inputSeed * timeSeed) % 1000;
+            // Seed based on input for consistent results per query
+            let seed = 0;
+            for (let i = 0; i < inputQuery.length; i++) {
+                seed += inputQuery.charCodeAt(i);
+            }
+            // Use current time as secondary seed for slight variation
+            const timeSeed = new Date().getMinutes() * 60 + new Date().getSeconds();
+            seed = (seed + timeSeed) % 10000;
 
-            // Normalisasi Kueri untuk Personalization
-            const normalizedQuery = inputQuery.replace(/[^a-zA-Z0-9\s]/g, '').trim();
-            const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length > 2);
-            const queryPart = queryWords[0] || 'Anonim';
-            const queryHash = normalizedQuery.length;
+            const hash = (seed * 997) % 1000; // Prime number multiplier for better distribution
+
+            // Normalisasi Kueri
+            const normalizedQuery = inputQuery.replace(/[^a-zA-Z0-9\s+@.]/g, '').trim();
+            let queryPart = normalizedQuery.split(/\s+/)[0] || 'Anonim';
 
             // Elemen Realistis Indonesia
-            const provinces = ['DKI Jakarta', 'Jawa Barat', 'Banten', 'Jawa Timur', 'Sumatera Utara'];
+            const provinces = ['DKI Jakarta', 'Jawa Barat', 'Banten', 'Jawa Timur', 'Sumatera Utara', 'Jawa Tengah', 'Sulawesi Selatan'];
             const cities = {
-                'DKI Jakarta': ['Jakarta Selatan', 'Jakarta Timur', 'Jakarta Barat'],
-                'Jawa Barat': ['Bandung', 'Bekasi', 'Depok'],
-                'Banten': ['Tangerang', 'Serang'],
-                'Jawa Timur': ['Surabaya', 'Malang'],
-                'Sumatera Utara': ['Medan']
+                'DKI Jakarta': ['Jakarta Selatan', 'Jakarta Timur', 'Jakarta Barat', 'Jakarta Pusat', 'Jakarta Utara'],
+                'Jawa Barat': ['Bandung', 'Bekasi', 'Depok', 'Bogor', 'Cirebon'],
+                'Banten': ['Tangerang', 'Serang', 'Cilegon'],
+                'Jawa Timur': ['Surabaya', 'Malang', 'Sidoarjo'],
+                'Sumatera Utara': ['Medan', 'Pematangsiantar'],
+                'Jawa Tengah': ['Semarang', 'Solo', 'Yogyakarta'],
+                'Sulawesi Selatan': ['Makassar']
             };
 
             const province = provinces[hash % provinces.length];
             const cityList = cities[province] || [province];
             const city = cityList[hash % cityList.length];
 
-            const streetType = ['Jalan Raya', 'Gang', 'Komplek', 'Perumahan'][hash % 4];
-            const streetSuffix = ['Indah', 'Permai', 'Mawar', 'Seroja', 'Kencana'][hash % 5];
+            const streetType = ['Jalan Raya', 'Gang', 'Komplek', 'Perumahan', 'Blok'][hash % 5];
+            const streetSuffix = ['Indah', 'Permai', 'Mawar', 'Seroja', 'Kencana', 'Damai'][hash % 6];
             const streetName = `${streetType} ${queryPart} ${streetSuffix}`;
 
-            // Derived Data
-            const basePhonePrefix = (searchType === 'nomor_hp') ? inputQuery.slice(0, 6) : `+62 81${hash % 9}x`;
-            const basePhone = `${basePhonePrefix}-${(1000 + hash).toString().padStart(4, '0')}-xxxx`;
+            // --- Fiksional Data Generation ---
 
-            // NIK Pattern (Fiksional tapi mengikuti format region: 32 = Jabar, 31 = Jakarta, 36 = Banten)
-            const nikPrefixMap = { 'Jawa Barat': '32', 'DKI Jakarta': '31', 'Banten': '36', 'Jawa Timur': '35', 'Sumatera Utara': '12' };
-            const nikPrefix = nikPrefixMap[province] || '33'; // Default Jawa Tengah
-            const baseNIK = `${nikPrefix}0${hash % 9}${hash % 10}**${(hash * 37) % 10000}00${(hash % 10)}`;
+            let baseNIK = `3201${(hash * 37) % 99999999}00${(hash % 10)}`;
+            let basePhone = `+62812${hash % 9}${hash % 10}xxxxxx`;
+            let baseEmail = `${queryPart.toLowerCase()}${hash % 10}${hash % 100}@${['gmail.com', 'yahoo.co.id', 'outlook.com'][hash % 3]}`;
+            let baseIMEI = `865${hash}00${hash}00${(hash % 100)}**`;
+            let baseIP = `103.${hash % 255}.${hash % 255}.${hash % 255}`;
+            let basePlate = `B ${1000 + hash} ${String.fromCharCode(65 + (hash % 26))}${String.fromCharCode(65 + (hash % 26))}`;
 
-            const nickname = (searchType === 'nama' || searchType === 'email')
-                ? `${queryPart.substring(0, 1).toUpperCase()}${queryPart.substring(1).toLowerCase()}***`
-                : `Anonim ${String(hash).slice(-3)}`;
 
-            const domain = ['gmail.com', 'yahoo.co.id', 'outlook.com', 'mail.osint'][hash % 4];
-            const email = (searchType === 'email') ? inputQuery : `${queryPart.toLowerCase()}${hash % 10}${hash % 100}@${domain}`;
+            // Penyesuaian berdasarkan Search Type (Membuat hasil sangat spesifik)
+            switch (searchType) {
+                case 'nik':
+                    baseNIK = inputQuery.substring(0, 6) + 'xxxxxx' + inputQuery.substring(12, 16);
+                    basePlate = `B ${2000 + hash} ${String.fromCharCode(65 + (hash % 26))}${String.fromCharCode(65 + (hash % 26))}`;
+                    queryPart = 'SBY';
+                    break;
+                case 'nomor_hp':
+                    basePhone = inputQuery.replace(/[^0-9+]/g, '').replace(/(\d{4})(\d{4})/, '$1xxxx');
+                    queryPart = 'WA-USER';
+                    break;
+                case 'email':
+                    baseEmail = inputQuery;
+                    queryPart = inputQuery.split('@')[0];
+                    break;
+                case 'ip':
+                    baseIP = inputQuery;
+                    queryPart = 'IP-HOST';
+                    break;
+                case 'plat':
+                    basePlate = inputQuery.toUpperCase().replace(/([A-Z]) (\d{1,4}) ([A-Z]{1,3})/, '$1 $2 ****');
+                    queryPart = 'MOBIL';
+                    break;
+            }
+
+            const fullName = (searchType === 'nama') ?
+                `${queryPart.toUpperCase()} ${['WIJAYA', 'SANTOSO', 'PUTRI', 'HADI'][hash % 4]} ${String.fromCharCode(65 + (hash % 26))}**` :
+                `${queryPart} BIN ${['ALI', 'BUDI', 'JOKO'][hash % 3]}`;
+
+            const phoneCensored = basePhone.replace(/(\d{4})x{6}/, '$1****');
+
 
             return {
-                fullName: (searchType === 'nama') ? `${queryPart} ${['Putra', 'Wijaya', 'Santoso', 'Hadi', 'Nugraha'][hash % 5]} ${String.fromCharCode(65 + (hash % 26))}**` : `${queryPart} ${['Purnama', 'Sutrisno'][hash % 2]}`,
-                nickname: nickname,
-                nik: baseNIK.replace(/(\*)/g, 'X'),
-                kk: baseNIK.replace(/(\*)/g, 'Y'),
-                plate: `B ${1000 + hash} ${String.fromCharCode(65 + (hash % 26))}${(hash % 10)} ${hash % 100}**`,
-                phone: basePhone.replace(/(\*)/g, 'X'),
+                fullName: fullName,
+                nik: baseNIK.replace(/(\*)/g, 'X').replace(/x/g, 'X'),
+                kk: baseNIK.replace(/(\*)/g, 'Y').replace(/x/g, 'Y'),
+                phone: phoneCensored,
+                email: baseEmail.replace(/x/g, '*'),
+                plat: basePlate.replace(/x/g, '*'),
+                imei: baseIMEI.replace(/x/g, '*'),
+                ipAddress: baseIP.replace(/x/g, '*'),
                 // Alamat dibuat sangat detail dan realistis
-                address: `${streetName} No. ${hash % 10}, RT 0${hash % 9 + 1}/ RW 0${hash % 5 + 1}, Kel. S***** J***, Kec. C**** P****, ${city}, ${province}`,
-                realtimeLocation: `Lokasi Terakhir Dideteksi: ${streetName}, ${city} (${hash % 3 + 1} Jam Lalu)`,
-                device: `ANDROID ${12 + (hash % 4)} (Samsung Galaxy S2${(hash % 5) + 0}) / IOS 1${5 + (hash % 3)}.X (iPhone 1${(hash % 5) + 0} Pro)`,
-                education: [`Universitas G*** M*** (S1, 20XX)`, `SMAN ${10 + hash % 10} ${city}`],
-                family: [`Istri/Pasangan: N** ** (No. HP: ${basePhone.replace('x', '*')})`, `Orang Tua: B*** S*** (NIK: ${baseNIK.slice(0, 8)}********)`],
-                photoLink: `https://placehold.co/100x150/ff0000/ffffff?text=FOTO_CENSORED_${queryPart}`,
-                hangout: [`Pusat Perbelanjaan ${city} (4 Hari Lalu)`, `Kedai Kopi ${queryPart} (1 Hari Lalu)`],
-                officeName: `PT. ${queryPart.toUpperCase()} Digitalindo`,
-                officeAddress: `Gedung ${['Astra', 'Equity', 'Cyber'][hash % 3]} Tower Lantai 1${hash % 10}, ${streetName}, ${city}, ${province}`,
-                socmed: [`https://www.instagram.com/${queryPart.toLowerCase()}_***`, `https://www.facebook.com/${queryPart.toLowerCase()}***`, `https://t.me/${queryPart.toLowerCase()}_osint`],
-                email: email
+                addressKTP: `Jalan ${['Setiabudi', 'Sudirman', 'Gatot Subroto'][hash % 3]} No. ${hash % 100}, RT 0${hash % 9}/ RW 0${hash % 5}, Kel. D****** A****, Kec. T****** M****, ${city}, ${province}`,
+                addressCurrent: `${streetName} No. ${hash % 10}, RT 0${hash % 9 + 1}/ RW 0${hash % 5 + 1}, ${city}, ${province} <span class="text-red-500">[Cek 48 Jam Lalu]</span>`,
+                realtimeLocation: `GPS Koordinat (Approx): S 6.2${hash % 9}${hash % 9} E 106.8${hash % 9}${hash % 9} (${city})`,
+                device: `Android 1${2 + (hash % 4)} (Xiaomi / Samsung S2${(hash % 5) + 0})`,
+                education: [`Universitas ${['Indonesia', 'Brawijaya', 'Gadjah Mada'][hash % 3]} (S1, 20XX)`, `SMAN ${10 + hash % 10} ${city}`],
+                jobTitle: ['Staf IT', 'Manajer Pemasaran', 'Data Analyst', 'Wiraswasta'][hash % 4],
+                officeName: `PT. ${queryPart.toUpperCase()} Digital Kencana`,
+                officeAddress: `Gedung ${['Astra', 'Equity', 'Cyber'][hash % 3]} Tower Lantai 1${hash % 10}, Jakarta Selatan, DKI Jakarta`,
+                socmed: [`IG: ${queryPart.toLowerCase()}_***`, `FB: ${queryPart.toLowerCase()}***`, `TG: ${queryPart.toLowerCase()}_osint`],
+                hangout: [`Restoran Mewah (3 Hari Lalu)`, `Kantor Pos Pusat ${city} (1 Hari Lalu)`],
             };
         }
 
         async function generateFakeResult(inputQuery) {
-            // Perbedaan Performa
-            const initialDelayMins = isPremium ? 3.5 : 15.3;
-            const loopCount = isPremium ? 1 : 3;
-            const delayMs = isPremium ? 500 : 1000;
-            const speedText = isPremium ? "DIPERCEPAT (1-5m)" : "NORMAL (10-30m)";
+            // Jeda Waktu (Slow/Fast)
+            const slowDelayMs = 200; // Delay per baris untuk efek mengetik
+            const fastDelayMs = 50;
+            
+            // Waktu Proses TUNDA (Delay for user waiting)
+            const waitTimeMs = isPremium ? 500 : 300000; // 500ms vs 300,000ms (5 menit)
+            const waitTimeText = isPremium ? "1 - 5 Detik" : "5 Menit"; 
+            const typingDelay = isPremium ? fastDelayMs : slowDelayMs;
 
             const searchType = document.getElementById('searchType').value;
             const data = generateFictionalData(inputQuery, searchType);
 
-            await typeLine(`[$ PROTOCOL] Mengautentikasi kunci akses level 7...`, 20);
-            await typeLine(`[$ PROTOCOL] Kueri: ${inputQuery} | Tipe: ${searchType.toUpperCase()}`, 20);
-            await typeLine(`[$ PROTOCOL] Menginisiasi modul Dox-Kernel 7.1.x`, 20);
-            await typeLine(`[$ PROCESS] Estimasi Waktu Proses: ${initialDelayMins} menit | Mode: ${speedText}.`, 5);
-
-            for (let i = 1; i <= loopCount; i++) {
-                await typeLine(`[$ PROCESS] Status: Menganalisis Layer Data ${i}/7...`, 5);
-                await new Promise(r => setTimeout(r, delayMs));
-            }
-
-            // --- FEATURE DIFFERENTIATION (PENGURANGAN CENSORING UNTUK PREMIUM) ---
-            // Member Biasa: Sensor Penuh
-            const plateCensored = data.plate.replace(/([A-Z] \d{4} [A-Z]{2}) \/ ([A-Z]{2} \d{4})/, '$1 / ** ******');
-            const officeAddressCensored = 'Lokasi Office: ***** [Layer 6 Restricted]';
-            const phoneCensored = data.phone.replace(/(\d{4}-)/, '****-');
-
-            // Member Premium: Sensor dikurangi (Layer 6 Access)
-            const plateDisplay = isPremium ? `${data.plate} <span class="text-cyan-400">[PRIORITY DETAIL]</span>` : plateCensored;
-            const officeAddressDisplay = isPremium ? `Lokasi Office: ${data.officeAddress}` : officeAddressCensored;
-            const phoneDisplay = isPremium ? data.phone : phoneCensored;
-            // ----------------------------------------------------------------------
-
-
+            await typeLine(`[$ PROTOCOL] Mengautentikasi kunci akses level 7...`, typingDelay);
+            await typeLine(`[$ PROTOCOL] Kueri: ${inputQuery} | Tipe: ${searchType.toUpperCase()}`, typingDelay);
+            await typeLine(`[$ PROTOCOL] Menginisiasi modul Dox-Kernel 7.2.x`, typingDelay);
+            await typeLine(`[$ PROCESS] Estimasi Waktu Proses: ${waitTimeText} | Mode: ${isPremium ? 'ALPHA-7 PRIORITY' : 'STANDARD LOW-PRIORITY'}.`, 5);
+            await typeLine(`[$ PROCESS] Memulai koneksi ke ELINT L5: Database Kependudukan...`, typingDelay);
+            await new Promise(r => setTimeout(r, 1000)); // Jeda 1 detik sebelum hit delay panjang
+            
+            await typeLine(`[$ WAIT] Sesi Proses Data Utama Dimulai. Mohon Tunggu ${waitTimeText} (${waitTimeMs / 1000}s)...`, typingDelay);
+            
+            // JEDA PANJANG DISINI
+            await new Promise(r => setTimeout(r, waitTimeMs));
+            
+            
+            await typeLine(`[$ PROCESS] Koneksi L5 Established. Memvalidasi checksum data...`, typingDelay);
+            await typeLine(`[$ PROCESS] Menerima 1.2 GB data terenkripsi...`, typingDelay);
             await typeLine(`[$ RESULT] ** Data Ditemukan & Di-Dekripsi (Level 7) **`, 30);
             await typeLine(`--------------------------------------------------------------------------------`, 5);
 
+            // --- FEATURE DIFFERENTIATION (PENGURANGAN CENSORING UNTUK PREMIUM) ---
+            // Member Biasa: Sensor Penuh
+            const officeAddressDisplay = isPremium ? data.officeAddress : 'Lokasi Office: ***** [Layer 6 Restricted]';
+            const plateDisplay = isPremium ? data.plat : data.plat.substring(0, data.plat.length - 4) + '****'; // Sensor 4 karakter terakhir plat
+            const emailDisplay = isPremium ? data.email : data.email.replace(/@\w+\.\w+/, '@****.***');
+            const phoneDisplay = isPremium ? data.phone.replace(/x/g, '*') : data.phone.replace(/(\d{4})x{6}/, '$1****'); // Sensor 6 digit terakhir HP
+            // ----------------------------------------------------------------------
+
+
             const lines = [
-                `> Nama Lengkap: <span class="text-yellow-400">${data.fullName}</span>`,
-                `> Nama Panggilan: ${data.nickname}`,
-                `> NIK/KK Target: ${data.nik} / ${data.kk}`,
-                `> Email Utama: ${data.email}`,
-                `> Plat Kendaraan: ${plateDisplay}`,
-                `> Telepon/WA: <span class="text-yellow-400">${phoneDisplay}</span>`,
-                `> Alamat Domisili (Real Time): ${data.realtimeLocation}`,
-                `> Domisili Terakhir: ${data.address}`,
+                `> NIK KTP: <span class="text-yellow-400">${data.nik}</span> (Sumber: L5-Dukcapil)`,
+                `> Kartu Keluarga (KK): <span class="text-yellow-400">${data.kk}</span>`,
+                `> Nama Lengkap: <span class="text-cyan-400">${data.fullName}</span> (BIN: ${data.fullName.split(' ')[data.fullName.split(' ').length - 1]})`,
+                `> Alamat KTP: ${data.addressKTP}`,
+                `> Alamat Saat Ini: ${data.addressCurrent}`,
+                `> --- [KONTAK & PERANGKAT] ---`,
+                `> Telepon/WA: <span class="text-red-500">${phoneDisplay}</span>`,
+                `> Email Utama: ${emailDisplay}`,
+                `> IMEI Perangkat: ${data.imei}`,
+                `> Alamat IP Terakhir: ${data.ipAddress}`,
                 `> Info Perangkat: ${data.device}`,
-                `> --- [INFORMASI SOSIAL MEDIA (COOKIES/LINK)] ---`,
-                `> Instagram: <span class="censored">${data.socmed[0]}</span>`,
-                `> Facebook: <span class="censored">${data.socmed[1]}</span>`,
-                `> Telegram: <span class="censored">${data.socmed[2]}</span>`,
-                `> --- [INFORMASI PRIBADI & PEKERJAAN] ---`,
-                `> Data Keluarga: ${data.family.join(' | ')}`,
-                `> Riwayat Pendidikan: ${data.education.join(' | ')}`,
-                `> Jabatan/Pekerjaan: ${data.officeName} | ${officeAddressDisplay}`,
-                `> Lokasi Kunjungan Terakhir (7 Hari): ${data.hangout.join(' | ')}`,
-                `> Tautan Foto: <span class="censored">${data.photoLink}</span>`,
+                `> --- [INFORMASI KEBERADAAN & PEKERJAAN] ---`,
+                `> Plat Kendaraan: ${plateDisplay} <span class="text-cyan-400">${isPremium ? '[DEKODE L6]' : ''}</span>`,
+                `> Lokasi GPS Real Time: ${data.realtimeLocation}`,
+                `> Pekerjaan: ${data.jobTitle} di ${data.officeName}`,
+                `> Lokasi Kantor: ${officeAddressDisplay}`,
+                `> Sosial Media Dideteksi: ${data.socmed.join(' | ')}`,
                 `--------------------------------------------------------------------------------`,
                 `[$ SUCCESS] ** Prosedur Data-Doxing Selesai. **`,
                 `[$ SYSTEM] Siap menerima Kueri Baru.`
@@ -776,6 +813,3 @@
 </body>
 
 </html>
-
-
-
