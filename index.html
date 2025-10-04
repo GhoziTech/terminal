@@ -239,6 +239,13 @@
         </div>
     </div>
 
+    <script>
+      // Inject environment variables from Netlify at runtime
+      window.FIREBASE_CONFIG_JSON = `{{FIREBASE_CONFIG_JSON}}`;
+      window.APP_ID = `{{APP_ID}}`;
+      window.INITIAL_AUTH_TOKEN = `{{INITIAL_AUTH_TOKEN}}`;
+    </script>
+
     <script type="module">
         // Firebase Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -247,14 +254,16 @@
 
         // Inisialisasi Firebase Global Variables (Required for Canvas Environment)
         // Mengambil Environment Variable dari Netlify (via globalThis / window)
+        // ENV injection fallback for static hosting
         const firebaseConfig = (() => {
-            try {
-                const env = window.FIREBASE_CONFIG_JSON || globalThis.FIREBASE_CONFIG_JSON;
-                return JSON.parse(env);
-            } catch (e) {
-                console.error("Gagal parsing FIREBASE_CONFIG_JSON:", e);
-                return {};
-            }
+          try {
+            // Cek dari script injection Netlify (static replacement)
+            const env = document.currentScript?.dataset?.config || window.FIREBASE_CONFIG_JSON;
+            return JSON.parse(env);
+          } catch (e) {
+            console.error("Gagal parsing FIREBASE_CONFIG_JSON:", e);
+            return {};
+          }
         })();
 
 
@@ -779,5 +788,6 @@
     </script>
 
 </body>
+
 
 </html>
