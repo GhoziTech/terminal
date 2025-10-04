@@ -240,10 +240,10 @@
     </div>
 
     <script>
-      // Inject environment variables from Netlify at runtime
-      window.FIREBASE_CONFIG_JSON = `{{FIREBASE_CONFIG_JSON}}`;
-      window.APP_ID = `{{APP_ID}}`;
-      window.INITIAL_AUTH_TOKEN = `{{INITIAL_AUTH_TOKEN}}`;
+      // Diinject langsung oleh Netlify dari environment variable
+      window.FIREBASE_CONFIG_JSON = '{{FIREBASE_CONFIG_JSON}}';
+      window.APP_ID = '{{APP_ID}}';
+      window.INITIAL_AUTH_TOKEN = '{{INITIAL_AUTH_TOKEN}}';
     </script>
 
     <script type="module">
@@ -257,18 +257,15 @@
         // ENV injection fallback for static hosting
         const firebaseConfig = (() => {
           try {
-            // Cek dari script injection Netlify (static replacement)
-            const env = document.currentScript?.dataset?.config || window.FIREBASE_CONFIG_JSON;
-            return JSON.parse(env);
+            return JSON.parse(window.FIREBASE_CONFIG_JSON);
           } catch (e) {
             console.error("Gagal parsing FIREBASE_CONFIG_JSON:", e);
             return {};
           }
         })();
-
-
-        const appId = window.APP_ID || globalThis.APP_ID || 'osint-v7';
-        const initialAuthToken = window.INITIAL_AUTH_TOKEN || globalThis.INITIAL_AUTH_TOKEN || null;
+        
+        const appId = window.APP_ID || 'osint-v7';
+        const initialAuthToken = window.INITIAL_AUTH_TOKEN || null;
 
         // --- Global State ---
         let db;
@@ -791,3 +788,4 @@
 
 
 </html>
+
