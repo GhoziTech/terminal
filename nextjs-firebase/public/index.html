@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OSINT V7 - Firebase Client</title>
+  </head>
+  <body>
+    <h1>OSINT V7 (Next.js + Firebase)</h1>
+    <p id="firebase-status">Loading...</p>
+
+    <script type="module">
+      import app from "../firebase.js";
+      import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+      const auth = getAuth(app);
+      signInAnonymously(auth)
+        .then(() => {
+          document.getElementById("firebase-status").textContent =
+            "✅ Firebase Connected. UID: " + auth.currentUser?.uid;
+        })
+        .catch((err) => {
+          document.getElementById("firebase-status").textContent = "❌ Firebase Error: " + err.message;
+        });
+    </script>
+  </body>
+</html>
